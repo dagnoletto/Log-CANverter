@@ -11,6 +11,13 @@ from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import asksaveasfilename
 import time
 
+def localize_floats(row):
+    return [
+        str(el).replace('.', ',') #if isinstance(el, float) else el 
+        for el in row
+    ]
+
+
 def validate_decode():
     try:
         db.decode_message(arbitration_id, data)
@@ -26,6 +33,7 @@ signalMin = [None]
 signalMax = [None]
 values_list = []
 aggregated_values_list = []
+aggregated_values_with_comma_list = []
 signalactive_list = []
 signals_bool = 0
 dps_list = [3]
@@ -40,7 +48,7 @@ Tk().withdraw() # we don't want a full GUI, so keep the root window from appeari
 
 logfilename = askopenfilename(title = "Select Log File",filetypes = (("LOG Files","*.log"),("all files","*.*"))) 
 dbcfilename = askopenfilename(title = "Select DBC File",filetypes = (("DBC Files","*.dbc"),("all files","*.*"))) 
-outputfile = asksaveasfilename(title = "Save Exported CSV File", filetypes = (("CSV Files","*.csv"),("all files","*.*")))
+outputfile = asksaveasfilename(title = "Save Exported CSV File", filetypes = (("CSV Files","*.csv"),("all files","*.*"))) + ".csv"
 tempfile = outputfile + ".temp"
 
 with open (logfilename, "r",encoding="utf8") as inputfile:
@@ -51,7 +59,9 @@ inputfile.close()
 with open (logfilename, "r",encoding="utf8") as inputfile:
 
     with open(tempfile, "w", newline='') as logfile:
-        writecsv = csv.writer(logfile, quoting=csv.QUOTE_ALL, delimiter=",")
+        # writecsv = csv.writer(logfile, quoting=csv.QUOTE_ALL, delimiter=",")
+        # writecsv = csv.writer(logfile, dialect='excel',quoting=csv.QUOTE_NONE, delimiter=";")
+        writecsv = csv.writer(logfile,quoting=csv.QUOTE_NONE, delimiter=";")
         db = cantools.database.load_file(dbcfilename)
         raw_dbc = db.messages
         for iterable in raw_dbc:
@@ -158,7 +168,9 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
                                     pass
                             aggregated_values_list[i] = value
                     aggregated_values_list[0] = str("%0.3f" %(lastwritetime-starttime))
-                    writecsv.writerow(aggregated_values_list)
+                    aggregated_values_with_comma_list = localize_floats(aggregated_values_list)
+                    # writecsv.writerow(aggregated_values_list)
+                    writecsv.writerow(aggregated_values_with_comma_list)
                     outputlinecount += 1
                     signals_bool = 0
             
@@ -174,8 +186,10 @@ inputfile.close()
 
 with open(tempfile, "r") as inputfile:
     with open(outputfile, "w", newline='') as logfile:
-        reader = csv.reader(inputfile, delimiter = ',', quotechar = '"')
-        writer = csv.writer(logfile,quoting=csv.QUOTE_ALL, delimiter=",")
+        # reader = csv.reader(inputfile, delimiter = ',', quotechar = '"')
+        reader = csv.reader(inputfile, delimiter = ';', quotechar = '"')
+        #writer = csv.writer(logfile,quoting=csv.QUOTE_ALL, delimiter=",")
+        writer = csv.writer(logfile,quoting=csv.QUOTE_NONE, delimiter=";")
         for row in tqdm(reader,desc = "Compressing", total = outputlinecount, unit = "Rows"):
             result = list(compress(row, signalactive_list))
             writer.writerow(result)
