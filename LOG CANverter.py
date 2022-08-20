@@ -48,7 +48,9 @@ Tk().withdraw() # we don't want a full GUI, so keep the root window from appeari
 
 logfilename = askopenfilename(title = "Select Log File",filetypes = (("LOG Files","*.log"),("all files","*.*"))) 
 dbcfilename = askopenfilename(title = "Select DBC File",filetypes = (("DBC Files","*.dbc"),("all files","*.*"))) 
-outputfile = asksaveasfilename(title = "Save Exported CSV File", filetypes = (("CSV Files","*.csv"),("all files","*.*"))) + ".csv"
+outputfile = asksaveasfilename(title = "Save Exported CSV File", filetypes = (("CSV Files","*.csv"),("all files","*.*")))
+outputfile = str.removesuffix(outputfile,".csv")
+outputfile += ".csv"
 tempfile = outputfile + ".temp"
 
 with open (logfilename, "r",encoding="utf8") as inputfile:
@@ -136,7 +138,7 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
                     for (key, value) in decoded_msg.items():
                         if key in signalList:
                             indexval = signalList.index(key)
-                            if signalMin[indexval] == None or value > signalMin[indexval] and signalMax[indexval] == None or value < signalMax[indexval]:
+                            if signalMin[indexval] == None or value >= signalMin[indexval] and signalMax[indexval] == None or value <= signalMax[indexval]:
                                 if dps_list[indexval] != None:
                                     try:
                                         value = round(float(value),dps_list[indexval])
