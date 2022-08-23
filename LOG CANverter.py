@@ -120,9 +120,11 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
 
         writecsv2 = csv.writer(logfile, quoting=csv.QUOTE_ALL)
         linePattern = re.compile(r"\((\d+.\d+)\)\s+[^\s]+\s+([0-9A-F#]{3}|[0-9A-F#]{8})#([0-9A-F]+)")
+        linePattern2 = re.compile(r"\((\d+.\d+)\)\s+([^\s]+)\s+([0-9A-F#]{3}|[0-9A-F#]{8})#([0-9A-F]+)")
         for row in tqdm(inputfile,desc= "Lines", total = numlines,unit = " Lines"):
             try:
                 tokens = linePattern.search(row).groups()
+                tokens2 = linePattern2.search(row).groups()[1]
                 timestamp = float(tokens[0])
                 arbitration_id = int(tokens[1],16)
                 data = bytearray.fromhex(tokens[2])
