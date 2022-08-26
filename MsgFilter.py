@@ -1,7 +1,4 @@
 #! /usr/bin/env python3
-# Split a single .log file into the number of interfaces the log file has inside. For example, if there are
-# recorded messages from interface can0 and interface can1, this routine will create two new .log files including 
-# the messages from each interface.
 
 import os
 from itertools import compress
