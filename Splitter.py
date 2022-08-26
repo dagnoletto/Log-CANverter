@@ -30,11 +30,6 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
         try:
             caninterface = linePattern2.search(row).groups()[1]
 
-            try:
-                interfaces.index(caninterface)
-            except:
-                interfaces.append(caninterface)
-
             basename = os.path.splitext(os.path.basename(logfilename))[0]
 
             splitfile = str.split(logfilename, basename)
@@ -43,6 +38,13 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
                 basename = textwrap.shorten( basename, width=basename.find('.'), placeholder='' )  
                 
             splitfile[0] = splitfile[0] + basename + "_" + caninterface + ".log"
+
+            try:
+                interfaces.index(caninterface)
+            except:
+                interfaces.append(caninterface) # Primeira vez chegando aqui, verifica se arquivo existe então remove-o
+                if os.path.exists(splitfile[0]):
+                   os.remove(splitfile[0])
 
             with open (splitfile[0], "a",encoding="utf8") as tempinputfile:
                 #tempinputfile.seek( 0, 2 )
