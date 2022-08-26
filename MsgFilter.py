@@ -51,7 +51,7 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
             msgidstr = linePattern2.search(row).groups()[2] 
 
             MsgCounter = MsgCounter + 1
-            print("\rLine '%s': '%s'"% (MsgCounter,row[:-1]))
+            #print("\rLine '%s': '%s'"% (MsgCounter,row[:-1]))
 
 
             basename = os.path.splitext(os.path.basename(logfilename))[0]
@@ -82,5 +82,7 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
 
 if MsgCounter == 0:
     print("\rNo filter matches")
+else:
+    print("\rMatching lines '%s'"% MsgCounter)
 
 inputfile.close()
