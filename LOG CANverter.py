@@ -38,13 +38,9 @@ aggregated_values_list = []
 aggregated_values_with_comma_list = []
 interfaces = []
 signalactive_list = []
-signals_bool = 0
 dps_list = [3]
 dpsbase = 3
 loggingbase = 1
-frequency = 100
-starttime = float(0)
-lastwritetime = float(0)
 outputlinecount = 2
 
 Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
@@ -147,13 +143,6 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
                 arbitration_id = int(tokens[1],16)
                 data = bytearray.fromhex(tokens[2])
                 if validate_decode() == True:
-                    signals_bool = 1
-                    if starttime == 0:
-                        starttime = timestamp
-                        lastwritetime = timestamp
-                        timestamp = 0
-                    else:
-                        timestamp = (timestamp - starttime)
                     decoded_msg = db.decode_message(arbitration_id, data, decode_choices=False) 
                     for (key, value) in decoded_msg.items():
                         if key in signalList:
@@ -170,8 +159,6 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
                                     except:
                                         pass
                                 values_list[indexval].append(value)
-                if (timestamp - lastwritetime >= (1/frequency)) and (signals_bool == 1) :
-                    lastwritetime = timestamp
                     for i, items in enumerate(values_list):
                         if len(values_list[i]) > 0:
                             try:
@@ -189,12 +176,11 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
                                 except:
                                     pass
                             aggregated_values_list[i] = value
-                    aggregated_values_list[0] = str("%0.3f" %(lastwritetime-starttime))
+                    aggregated_values_list[0] = timestamp
                     aggregated_values_with_comma_list = localize_floats(aggregated_values_list)
                     # writecsv.writerow(aggregated_values_list)
                     writecsv.writerow(aggregated_values_with_comma_list)
                     outputlinecount += 1
-                    signals_bool = 0
             
                     for i,items in enumerate(values_list):
                         if aggregated_values_list[i] != "" and signalactive_list[i] == False:
