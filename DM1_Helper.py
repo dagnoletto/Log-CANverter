@@ -5,6 +5,7 @@ import os
 from itertools import compress
 from tqdm import tqdm
 import re
+import csv
 import textwrap
 from tkinter import Message, Tk
 from tkinter.filedialog import askopenfilename
@@ -166,9 +167,15 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
                     if len(interface) == 0:       
                         interface.append(caninterface)                  
                         file = generate_file_name()
+                        secondfile = file.removesuffix(".log")  
+                        tempfile = secondfile + ".temp"      
+                        secondfile += ".csv"
                         if os.path.exists(file): # Primeira vez chegando aqui, verifica se arquivo existe então remove-o
                             os.remove(file)
-
+                        if os.path.exists(tempfile): # Primeira vez chegando aqui, verifica se arquivo existe então remove-o
+                            os.remove(tempfile)    
+                        if os.path.exists(secondfile): # Primeira vez chegando aqui, verifica se arquivo existe então remove-o
+                            os.remove(secondfile)  
 
                 if caninterface == interface[0]:
 
@@ -233,162 +240,115 @@ else:
         print("\rSPN: %d FMI: %d CM: %d OC: %d" % (DTCs_Found[i].SPN, DTCs_Found[i].FMI, DTCs_Found[i].CM, DTCs_Found[i].OC) )
 
 
+# AQUI TRATA DA GERAÇÃO DO ARQUIVO EXCELL!
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+frequency = 1000
+displaySignalList = []
+starttime = float(0)
+lastwritetime = float(0)
+values_list = []
 
 firstfile = generate_file_name()
 
-if firstfile.find('.') != -1:
-    secondfile = textwrap.shorten( firstfile, width=firstfile.find('.'), placeholder='' )  
-tempfile = secondfile + + ".temp"      
+secondfile = firstfile.removesuffix(".log")  
+tempfile = secondfile + ".temp"      
 secondfile += ".csv"
 
 with open (firstfile, "r",encoding="utf8") as inputfile:
-"""
+    print("Opening %s \n" % firstfile)
+    print("Calculating Total Lines... \n")
+    numlines = sum(1 for line in inputfile)
+inputfile.close()
+
+with open (firstfile, "r",encoding="utf8") as inputfile:
+
     with open(tempfile, "w", newline='') as logfile:
+
         writecsv = csv.writer(logfile,quoting=csv.QUOTE_NONE, delimiter=";")
-        db = cantools.database.load_file(dbcfilename)
-        raw_dbc = db.messages
-        for iterable in raw_dbc:
-            listmsgs = str(iterable).split(',')
-            arb_id = int(listmsgs[1],0)
-            arb_id_list.append(arb_id)
-        arb_id_list.sort()
 
-        for count,i in enumerate(arb_id_list):
-            frameID = db.get_message_by_frame_id(arb_id_list[count])
-            signalset = frameID.signals        
+        displaySignalList.clear()
 
-            if len(signalset) > 0:
-                for i, iterable in enumerate(signalset):
-                    if frameID.signals[i].is_multiplexer == False:
-                        signalname    = str(frameID.signals[i].name)
-                        modsignalname = str(frameID.signals[i].name).replace("_"," ")
-                        signalunit    = frameID.signals[i].unit
-                        signalcomment = frameID.signals[i].comment
-                        signalminimum = frameID.signals[i].minimum
-                        signalmaximum = frameID.signals[i].maximum
-                        if signalcomment != None:
-                            try:
-                                log = int(re.findall("LOG = (d{1})",signalcomment)[0])
-                            except:
-                                log = loggingbase
-                        else:
-                            log = loggingbase
-                        if log >=1:
-                            signalList.append(signalname)
-                            displaySignalList.append(modsignalname)
-                            signalMin.append(signalminimum)
-                            signalMax.append(signalmaximum)
-                            if signalunit != None:
-                                signalUnit.append(signalunit)
-                            else:
-                                signalUnit.append('')
-                            if signalcomment != None:
-                                try:
-                                    dps = int(re.findall("DPS = (\d{2}|\d{1})",signalcomment)[0])
-                                except:
-                                    dps = dpsbase
-                            else:
-                                dps = dpsbase
-                            dps_list.append(dps)
+        displaySignalList.append("Time")
+        displaySignalList.append("MIL")
+        displaySignalList.append("RSL")
+        displaySignalList.append("AWL")
+        displaySignalList.append("PRL")
+        displaySignalList.append("Flash_MIL")
+        displaySignalList.append("Flash_RSL")
+        displaySignalList.append("Flash_AWL")
+        displaySignalList.append("Flash_PRL")        
+
+        for i in range( len(DTCs_Found) ):
+            spn_fmi = "SPN " + str(DTCs_Found[i].SPN) + " " + "FMI " + str(DTCs_Found[i].FMI)
+            displaySignalList.append( spn_fmi )
 
         writecsv.writerow(displaySignalList)
-        writecsv.writerow(signalUnit)
 
-        for iterable in range(len(signalList)) :
-            values_list.append([])
-            aggregated_values_list.append('')
-            signalactive_list.append(False)
-
-        writecsv2 = csv.writer(logfile, quoting=csv.QUOTE_ALL)
         linePattern = re.compile(r"\((\d+.\d+)\)\s+[^\s]+\s+([0-9A-F#]{3}|[0-9A-F#]{8})#([0-9A-F]+)")
-        linePattern2 = re.compile(r"\((\d+.\d+)\)\s+([^\s]+)\s+([0-9A-F#]{3}|[0-9A-F#]{8})#([0-9A-F]+)")
+
         for row in tqdm(inputfile,desc= "Lines", total = numlines,unit = " Lines"):
             try:
+
                 tokens = linePattern.search(row).groups()
-                tokens2 = linePattern2.search(row).groups()[1]
-
-                try:
-                    interfaces.index(tokens2)
-                except:
-                    interfaces.append(tokens2)
-
                 timestamp = float(tokens[0])
                 arbitration_id = int(tokens[1],16)
-                data = bytearray.fromhex(tokens[2])
-                if validate_decode() == True:
-                    signals_bool = 1
-                    if starttime == 0:
-                        starttime = timestamp
-                        lastwritetime = timestamp
-                        timestamp = 0
-                    else:
-                        timestamp = (timestamp - starttime)
-                    decoded_msg = db.decode_message(arbitration_id, data, decode_choices=False) 
-                    for (key, value) in decoded_msg.items():
-                        if key in signalList:
-                            indexval = signalList.index(key)
-                            if signalMin[indexval] == None or value >= signalMin[indexval] and signalMax[indexval] == None or value <= signalMax[indexval]:
-                                if dps_list[indexval] != None:
-                                    try:
-                                        value = round(float(value),dps_list[indexval])
-                                        try:
-                                            if int(value) == float(value):
-                                                value = int(value)
-                                        except:
-                                            pass
-                                    except:
-                                        pass
-                                values_list[indexval].append(value)
-                if (timestamp - lastwritetime >= (1/frequency)) and (signals_bool == 1) :
+                msgdatabytes = bytearray.fromhex(tokens[2])
+
+                if starttime == 0:
+                    starttime = timestamp
                     lastwritetime = timestamp
-                    for i, items in enumerate(values_list):
-                        if len(values_list[i]) > 0:
-                            try:
-                                value = sum(values_list[i])/len(values_list[i])
-                            except:
-                                value = values_list[i][-1]
-                            if dps_list[i] != 'None':
-                                try:
-                                    value = round(float(value),dps_list[i])
-                                    try:
-                                        if int(value) == float(value):
-                                            value = int(value)
-                                    except:
-                                        pass
-                                except:
-                                    pass
-                            aggregated_values_list[i] = value
-                    aggregated_values_list[0] = str("%0.3f" %(lastwritetime-starttime))
-                    aggregated_values_with_comma_list = localize_floats(aggregated_values_list)
-                    # writecsv.writerow(aggregated_values_list)
-                    writecsv.writerow(aggregated_values_with_comma_list)
-                    outputlinecount += 1
-                    signals_bool = 0
-            
-                    for i,items in enumerate(values_list):
-                        if aggregated_values_list[i] != "" and signalactive_list[i] == False:
-                            signalactive_list[i] = True
-                        values_list[i] = []
-                        aggregated_values_list[i] = ''
+                    timestamp = 0
+                else:
+                    timestamp = (timestamp - starttime)
+
+                #decoded_msg = db.decode_message(arbitration_id, data, decode_choices=False)
+                #values_list[indexval].append(value)
+
+
+                #if (timestamp - lastwritetime >= (1/frequency)):
+                    #lastwritetime = timestamp
+                    #aggregated_values_with_comma_list = localize_floats(aggregated_values_list)
+
+                    #writecsv.writerow(aggregated_values_with_comma_list)
+
+                    DM1_id = cantools.j1939.frame_id_pack( 6, 0, 0, 254, 202, 0 )
+                    if cantools.j1939.pgn_from_frame_id(arbitration_id) == cantools.j1939.pgn_from_frame_id(DM1_id): 
+                        lamp, dtcs = decode_DTC(msgdatabytes)
+                        Values = []
+
+                        Values.append(0) # Time
+                        Values.append(lamp.MIL) 
+                        Values.append(lamp.RSL) 
+                        Values.append(lamp.AWL) 
+                        Values.append(lamp.PRL) 
+
+                        Values.append(lamp.FLASH_MIL) 
+                        Values.append(lamp.FLASH_RSL) 
+                        Values.append(lamp.FLASH_AWL)
+                        Values.append(lamp.FLASH_PRL)  
+
+                        for i in range( len(DTCs_Found) ):
+                            dtc_active = 0
+                            for a in range ( len(dtcs) ):
+                                if ( DTCs_Found[i].SPN == dtcs[a].SPN ) and ( DTCs_Found[i].FMI == dtcs[a].FMI ):
+                                  dtc_active = 1
+                                  break
+                            Values.append(dtc_active)                                     
+
+                        writecsv.writerow(Values)
             except:
                 print("invalidated line observed: '%s'"% (row[:-1]))
     logfile.close()
-"""
 inputfile.close()
+
+with open(tempfile, "r") as inputfile:
+    with open(secondfile, "w", newline='') as logfile:
+        reader = csv.reader(inputfile, delimiter = ';', quotechar = '"')
+        writer = csv.writer(logfile,quoting=csv.QUOTE_NONE, delimiter=";")
+        for row in tqdm(reader):
+            writer.writerow(row)
+    logfile.close()
+inputfile.close()
+os.remove(tempfile)
+
