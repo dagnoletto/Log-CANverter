@@ -18,6 +18,7 @@ PGN_Transfer = 0
 Next_Packet = 0
 LargeMsgBytes = []
 DM1_id_Transfer = 0
+DTCs_Found = []
 
 DTC_Lamp = namedtuple('DTC_Lamp',
                      [
@@ -75,6 +76,24 @@ def decode_DTC(DM1_Data):
     
     return (Lamp, DTC_List)
 
+def check_DTCs(List):
+
+    for i in range( len(List) ):
+        search_dtc = List[i]
+
+        dtc_found_flag = 0
+
+        size = len(DTCs_Found)
+
+        for a in range( size ):
+            if ( search_dtc.SPN == DTCs_Found[a].SPN ) and ( search_dtc.FMI == DTCs_Found[a].FMI ):
+                dtc_found_flag = 1
+                break
+
+        if ( dtc_found_flag == 0 ) and ( search_dtc.SPN != 0 ): # Considera-se que SPN = 0 seja "sem falhas"
+            DTCs_Found.append( search_dtc )
+
+
 def generate_file_name():
     basename = os.path.splitext(os.path.basename(logfilename))[0]
     outputfile = str.split(logfilename, basename)
@@ -98,14 +117,13 @@ def save_row(row):
 
 
 interface = []
-MsgCounter = 0
 
 Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
 
 logfilename = askopenfilename(title = "Select Log File",filetypes = (("LOG Files","*.log"),("all files","*.*"))) 
 
 with open (logfilename, "r",encoding="utf8") as inputfile:
-    print("Calculating Total Lines... \n")
+    print("\r\nCalculating Total Lines... \n")
     numlines = sum(1 for line in inputfile)
 inputfile.close()
 
@@ -155,7 +173,8 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
             if caninterface == interface[0]:
 
                 if cantools.j1939.pgn_from_frame_id(msgid) == cantools.j1939.pgn_from_frame_id(DM1_id): 
-                    decode_DTC(msgdatabytes)
+                    lamp, dtcs = decode_DTC(msgdatabytes)
+                    check_DTCs(dtcs)
                     save_row(row)               
                 elif cantools.j1939.pgn_from_frame_id(msgid) == cantools.j1939.pgn_from_frame_id(TP_CM_id): 
                     
@@ -190,7 +209,8 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
                             newdata =''
                             for i in range( len(LargeMsgBytes) ):
                                 newdata = newdata + ( (str(hex(LargeMsgBytes[i])).removeprefix("0x")).upper() )
-                            decode_DTC(LargeMsgBytes)    
+                            lamp, dtcs = decode_DTC(LargeMsgBytes)    
+                            check_DTCs(dtcs)
                             LargeMsgBytes.clear()
                             row = str(row).replace( msgidstr, newid )
                             row = str(row).replace( msgdatastr, newdata )
@@ -207,9 +227,12 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
         except:
             linePattern2 = re.compile(Pattern) # somente para ter código aqui e não dar erro
 
-if MsgCounter == 0:
-    print("\rNo filter matches")
-else:
-    print("\rMatching lines '%s'"% MsgCounter)
 
 inputfile.close()
+
+if len(DTCs_Found) == 0:
+    print("\rNo active DTCs found!")
+else:
+    print("\r\nDTCs found:\n")
+    for i in range( len(DTCs_Found) ):
+        print("\rSPN: %d FMI: %d CM: %d OC: %d" % (DTCs_Found[i].SPN, DTCs_Found[i].FMI, DTCs_Found[i].CM, DTCs_Found[i].OC) )
