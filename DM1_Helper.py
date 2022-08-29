@@ -9,6 +9,8 @@ import textwrap
 from tkinter import Message, Tk
 from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import asksaveasfilename
+from collections import namedtuple
+import bitstruct
 
 Number_of_bytes = 0
 Number_of_packets = 0
@@ -16,6 +18,62 @@ PGN_Transfer = 0
 Next_Packet = 0
 LargeMsgBytes = []
 DM1_id_Transfer = 0
+
+DTC_Lamp = namedtuple('DTC_Lamp',
+                     [
+		                'PRL', # Protect lamp
+		                'AWL', # Amber warning lamp
+		                'RSL', # Red stop lamp
+		                'MIL', # Malfunction indicator lamp
+		                'FLASH_PRL', # Flash protect lamp
+		                'FLASH_AWL', # Flash amber warning lamp
+		                'FLASH_RSL', # Flash red stop lamp
+		                'FLASH_MIL', # Flash malfunction indicator lamp
+                     ])
+
+
+DTC = namedtuple('DTC',
+                     [
+                         'SPN',
+                         'FMI',
+                         'CM',
+                         'OC',
+                     ])
+
+def decode_DTC(DM1_Data):
+
+    DTC_List = []
+    DTC_List.clear()
+
+    if len(DM1_Data) <= 8:
+        number_of_DTCs = 1 
+    else:
+        number_of_DTCs = int( ( len(DM1_Data) - 2 )/4 ) # subtract lamp status
+
+    byte_index = 2  # first DTC position
+
+    Lamp = DTC_Lamp( DM1_Data[0] & 0x03,
+                     ( DM1_Data[0] >> 2 ) & 0x03, 
+                     ( DM1_Data[0] >> 4 ) & 0x03,
+                     ( DM1_Data[0] >> 6 ) & 0x03,
+                     DM1_Data[1] & 0x03,
+                     ( DM1_Data[1] >> 2 ) & 0x03, 
+                     ( DM1_Data[1] >> 4 ) & 0x03,
+                     ( DM1_Data[1] >> 6 ) & 0x03,
+                     )
+
+    for i in range(number_of_DTCs): 
+        spn = DM1_Data[ byte_index ] | ( DM1_Data[ byte_index + 1 ] << 8 ) | ( ( DM1_Data[ byte_index + 2 ] & 0xE0 ) << 11 )
+        fmi = DM1_Data[ byte_index + 2 ] & 0x1F
+        cm = ( DM1_Data[ byte_index + 3 ] & 0x80 ) >> 7
+        oc = ( DM1_Data[ byte_index + 3 ] & 0x7F )    
+
+        dtc_temp = DTC(spn, fmi, cm, oc) 
+
+        DTC_List.append( dtc_temp )
+        byte_index = byte_index + 4                            
+    
+    return (Lamp, DTC_List)
 
 def generate_file_name():
     basename = os.path.splitext(os.path.basename(logfilename))[0]
@@ -97,6 +155,7 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
             if caninterface == interface[0]:
 
                 if cantools.j1939.pgn_from_frame_id(msgid) == cantools.j1939.pgn_from_frame_id(DM1_id): 
+                    decode_DTC(msgdatabytes)
                     save_row(row)               
                 elif cantools.j1939.pgn_from_frame_id(msgid) == cantools.j1939.pgn_from_frame_id(TP_CM_id): 
                     
@@ -131,6 +190,7 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
                             newdata =''
                             for i in range( len(LargeMsgBytes) ):
                                 newdata = newdata + ( (str(hex(LargeMsgBytes[i])).removeprefix("0x")).upper() )
+                            decode_DTC(LargeMsgBytes)    
                             LargeMsgBytes.clear()
                             row = str(row).replace( msgidstr, newid )
                             row = str(row).replace( msgdatastr, newdata )
