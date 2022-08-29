@@ -167,15 +167,8 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
                     if len(interface) == 0:       
                         interface.append(caninterface)                  
                         file = generate_file_name()
-                        secondfile = file.removesuffix(".log")  
-                        tempfile = secondfile + ".temp"      
-                        secondfile += ".csv"
                         if os.path.exists(file): # Primeira vez chegando aqui, verifica se arquivo existe então remove-o
                             os.remove(file)
-                        if os.path.exists(tempfile): # Primeira vez chegando aqui, verifica se arquivo existe então remove-o
-                            os.remove(tempfile)    
-                        if os.path.exists(secondfile): # Primeira vez chegando aqui, verifica se arquivo existe então remove-o
-                            os.remove(secondfile)  
 
                 if caninterface == interface[0]:
 
@@ -213,9 +206,8 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
 
                             if (Number_of_bytes == 0) and (Next_Packet == Number_of_packets): # Transfer ended row.
                                 newid = (str(hex(DM1_id_Transfer)).removeprefix("0x")).upper()
-                                newdata =''
-                                for i in range( len(LargeMsgBytes) ):
-                                    newdata = newdata + ( (str(hex(LargeMsgBytes[i])).removeprefix("0x")).upper() )
+                                barray = bytearray(LargeMsgBytes)
+                                newdata = (barray.hex()).upper()
                                 lamp, dtcs = decode_DTC(LargeMsgBytes)    
                                 check_DTCs(dtcs)
                                 LargeMsgBytes.clear()
@@ -243,17 +235,18 @@ else:
 # AQUI TRATA DA GERAÇÃO DO ARQUIVO EXCELL!
 
 
-frequency = 1000
 displaySignalList = []
-starttime = float(0)
-lastwritetime = float(0)
-values_list = []
 
 firstfile = generate_file_name()
 
 secondfile = firstfile.removesuffix(".log")  
 tempfile = secondfile + ".temp"      
 secondfile += ".csv"
+
+if os.path.exists(tempfile): # Primeira vez chegando aqui, verifica se arquivo existe então remove-o
+    os.remove(tempfile)    
+if os.path.exists(secondfile): # Primeira vez chegando aqui, verifica se arquivo existe então remove-o
+    os.remove(secondfile)  
 
 with open (firstfile, "r",encoding="utf8") as inputfile:
     print("Opening %s \n" % firstfile)
@@ -295,48 +288,31 @@ with open (firstfile, "r",encoding="utf8") as inputfile:
                 arbitration_id = int(tokens[1],16)
                 msgdatabytes = bytearray.fromhex(tokens[2])
 
-                if starttime == 0:
-                    starttime = timestamp
-                    lastwritetime = timestamp
-                    timestamp = 0
-                else:
-                    timestamp = (timestamp - starttime)
+                DM1_id = cantools.j1939.frame_id_pack( 6, 0, 0, 254, 202, 0 )
+                if cantools.j1939.pgn_from_frame_id(arbitration_id) == cantools.j1939.pgn_from_frame_id(DM1_id): 
+                    lamp, dtcs = decode_DTC(msgdatabytes)
+                    Values = []
 
-                #decoded_msg = db.decode_message(arbitration_id, data, decode_choices=False)
-                #values_list[indexval].append(value)
+                    Values.append(str(timestamp).replace(".",",")) # Time
+                    Values.append(lamp.MIL) 
+                    Values.append(lamp.RSL) 
+                    Values.append(lamp.AWL) 
+                    Values.append(lamp.PRL) 
 
+                    Values.append(lamp.FLASH_MIL) 
+                    Values.append(lamp.FLASH_RSL) 
+                    Values.append(lamp.FLASH_AWL)
+                    Values.append(lamp.FLASH_PRL)  
 
-                #if (timestamp - lastwritetime >= (1/frequency)):
-                    #lastwritetime = timestamp
-                    #aggregated_values_with_comma_list = localize_floats(aggregated_values_list)
+                    for i in range( len(DTCs_Found) ):
+                        dtc_active = 0
+                        for a in range ( len(dtcs) ):
+                            if ( DTCs_Found[i].SPN == dtcs[a].SPN ) and ( DTCs_Found[i].FMI == dtcs[a].FMI ):
+                                dtc_active = 1
+                                break
+                        Values.append(dtc_active)                                     
 
-                    #writecsv.writerow(aggregated_values_with_comma_list)
-
-                    DM1_id = cantools.j1939.frame_id_pack( 6, 0, 0, 254, 202, 0 )
-                    if cantools.j1939.pgn_from_frame_id(arbitration_id) == cantools.j1939.pgn_from_frame_id(DM1_id): 
-                        lamp, dtcs = decode_DTC(msgdatabytes)
-                        Values = []
-
-                        Values.append(0) # Time
-                        Values.append(lamp.MIL) 
-                        Values.append(lamp.RSL) 
-                        Values.append(lamp.AWL) 
-                        Values.append(lamp.PRL) 
-
-                        Values.append(lamp.FLASH_MIL) 
-                        Values.append(lamp.FLASH_RSL) 
-                        Values.append(lamp.FLASH_AWL)
-                        Values.append(lamp.FLASH_PRL)  
-
-                        for i in range( len(DTCs_Found) ):
-                            dtc_active = 0
-                            for a in range ( len(dtcs) ):
-                                if ( DTCs_Found[i].SPN == dtcs[a].SPN ) and ( DTCs_Found[i].FMI == dtcs[a].FMI ):
-                                  dtc_active = 1
-                                  break
-                            Values.append(dtc_active)                                     
-
-                        writecsv.writerow(Values)
+                    writecsv.writerow(Values)
             except:
                 print("invalidated line observed: '%s'"% (row[:-1]))
     logfile.close()
