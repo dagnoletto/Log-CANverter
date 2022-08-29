@@ -170,64 +170,59 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
                             os.remove(file)
 
 
-            if caninterface == interface[0]:
+                if caninterface == interface[0]:
 
-                if cantools.j1939.pgn_from_frame_id(msgid) == cantools.j1939.pgn_from_frame_id(DM1_id): 
-                    lamp, dtcs = decode_DTC(msgdatabytes)
-                    check_DTCs(dtcs)
-                    save_row(row)               
-                elif cantools.j1939.pgn_from_frame_id(msgid) == cantools.j1939.pgn_from_frame_id(TP_CM_id): 
+                    if cantools.j1939.pgn_from_frame_id(msgid) == cantools.j1939.pgn_from_frame_id(DM1_id): 
+                        lamp, dtcs = decode_DTC(msgdatabytes)
+                        check_DTCs(dtcs)
+                        save_row(row)               
+                    elif cantools.j1939.pgn_from_frame_id(msgid) == cantools.j1939.pgn_from_frame_id(TP_CM_id): 
                     
-                    ControlByte = msgdatabytes[0]
+                        ControlByte = msgdatabytes[0]
 
-                    #if   ControlByte == 16:     # TP.CM_RTS
+                        #if   ControlByte == 16:     # TP.CM_RTS
                        
-                    #elif ControlByte == 17:     # TP.CM_CTS
+                        #elif ControlByte == 17:     # TP.CM_CTS
 
-                    #elif ControlByte == 19:     # TP.CM_EndOfMsgACK 
+                        #elif ControlByte == 19:     # TP.CM_EndOfMsgACK 
 
-                    if ControlByte == 32:        # TP.CM_BAM   
-                        Number_of_bytes = ( msgdatabytes[2] << 8 ) | msgdatabytes[1]
-                        Number_of_packets = msgdatabytes[3]
-                        PGN_Transfer = ( msgdatabytes[7] << 8 ) | ( msgdatabytes[6] << 8 ) | msgdatabytes[5]
-                        DM1_id_Transfer = cantools.j1939.frame_id_pack( J1939_header.priority, 0, 0, 254, 202, Source_Address )
-                        Next_Packet = 1
-                        LargeMsgBytes.clear()
-                    #elif ControlByte == 255:    # TP.Conn_Abort   
-                elif cantools.j1939.pgn_from_frame_id(msgid) == cantools.j1939.pgn_from_frame_id(TP_DT_id):
-                    if msgdatabytes[0] == Next_Packet:
-                        if Number_of_bytes >= 7:
-                            numbytesToload = 7
-                        else:
-                            numbytesToload = Number_of_bytes
-                        for i in range( numbytesToload ):
-                            LargeMsgBytes.append( msgdatabytes[i + 1] )
-                        Number_of_bytes = Number_of_bytes - numbytesToload
-
-                        if (Number_of_bytes == 0) and (Next_Packet == Number_of_packets): # Transfer ended row.
-                            newid = (str(hex(DM1_id_Transfer)).removeprefix("0x")).upper()
-                            newdata =''
-                            for i in range( len(LargeMsgBytes) ):
-                                newdata = newdata + ( (str(hex(LargeMsgBytes[i])).removeprefix("0x")).upper() )
-                            lamp, dtcs = decode_DTC(LargeMsgBytes)    
-                            check_DTCs(dtcs)
+                        if ControlByte == 32:        # TP.CM_BAM   
+                            Number_of_bytes = ( msgdatabytes[2] << 8 ) | msgdatabytes[1]
+                            Number_of_packets = msgdatabytes[3]
+                            PGN_Transfer = ( msgdatabytes[7] << 8 ) | ( msgdatabytes[6] << 8 ) | msgdatabytes[5]
+                            DM1_id_Transfer = cantools.j1939.frame_id_pack( J1939_header.priority, 0, 0, 254, 202, Source_Address )
+                            Next_Packet = 1
                             LargeMsgBytes.clear()
-                            row = str(row).replace( msgidstr, newid )
-                            row = str(row).replace( msgdatastr, newdata )
-                            save_row(row) # Atualizar o row com os dados
-                            Next_Packet = 0
-                        else:
-                            Next_Packet = Next_Packet + 1
-                #else:
-                    #MsgCounter = MsgCounter + 1
-                    #print("\rLine '%s': '%s'"% (MsgCounter,row[:-1]))
+                        #elif ControlByte == 255:    # TP.Conn_Abort   
+                    elif cantools.j1939.pgn_from_frame_id(msgid) == cantools.j1939.pgn_from_frame_id(TP_DT_id):
+                        if msgdatabytes[0] == Next_Packet:
+                            if Number_of_bytes >= 7:
+                                numbytesToload = 7
+                            else:
+                                numbytesToload = Number_of_bytes
+                            for i in range( numbytesToload ):
+                                LargeMsgBytes.append( msgdatabytes[i + 1] )
+                            Number_of_bytes = Number_of_bytes - numbytesToload
 
-            
-
+                            if (Number_of_bytes == 0) and (Next_Packet == Number_of_packets): # Transfer ended row.
+                                newid = (str(hex(DM1_id_Transfer)).removeprefix("0x")).upper()
+                                newdata =''
+                                for i in range( len(LargeMsgBytes) ):
+                                    newdata = newdata + ( (str(hex(LargeMsgBytes[i])).removeprefix("0x")).upper() )
+                                lamp, dtcs = decode_DTC(LargeMsgBytes)    
+                                check_DTCs(dtcs)
+                                LargeMsgBytes.clear()
+                                row = str(row).replace( msgidstr, newid )
+                                row = str(row).replace( msgdatastr, newdata )
+                                save_row(row) # Atualizar o row com os dados
+                                Next_Packet = 0
+                            else:
+                                Next_Packet = Next_Packet + 1
+                    #else:
+                        #MsgCounter = MsgCounter + 1
+                        #print("\rLine '%s': '%s'"% (MsgCounter,row[:-1]))
         except:
             linePattern2 = re.compile(Pattern) # somente para ter código aqui e não dar erro
-
-
 inputfile.close()
 
 if len(DTCs_Found) == 0:
@@ -236,3 +231,164 @@ else:
     print("\r\nDTCs found:\n")
     for i in range( len(DTCs_Found) ):
         print("\rSPN: %d FMI: %d CM: %d OC: %d" % (DTCs_Found[i].SPN, DTCs_Found[i].FMI, DTCs_Found[i].CM, DTCs_Found[i].OC) )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+firstfile = generate_file_name()
+
+if firstfile.find('.') != -1:
+    secondfile = textwrap.shorten( firstfile, width=firstfile.find('.'), placeholder='' )  
+tempfile = secondfile + + ".temp"      
+secondfile += ".csv"
+
+with open (firstfile, "r",encoding="utf8") as inputfile:
+"""
+    with open(tempfile, "w", newline='') as logfile:
+        writecsv = csv.writer(logfile,quoting=csv.QUOTE_NONE, delimiter=";")
+        db = cantools.database.load_file(dbcfilename)
+        raw_dbc = db.messages
+        for iterable in raw_dbc:
+            listmsgs = str(iterable).split(',')
+            arb_id = int(listmsgs[1],0)
+            arb_id_list.append(arb_id)
+        arb_id_list.sort()
+
+        for count,i in enumerate(arb_id_list):
+            frameID = db.get_message_by_frame_id(arb_id_list[count])
+            signalset = frameID.signals        
+
+            if len(signalset) > 0:
+                for i, iterable in enumerate(signalset):
+                    if frameID.signals[i].is_multiplexer == False:
+                        signalname    = str(frameID.signals[i].name)
+                        modsignalname = str(frameID.signals[i].name).replace("_"," ")
+                        signalunit    = frameID.signals[i].unit
+                        signalcomment = frameID.signals[i].comment
+                        signalminimum = frameID.signals[i].minimum
+                        signalmaximum = frameID.signals[i].maximum
+                        if signalcomment != None:
+                            try:
+                                log = int(re.findall("LOG = (d{1})",signalcomment)[0])
+                            except:
+                                log = loggingbase
+                        else:
+                            log = loggingbase
+                        if log >=1:
+                            signalList.append(signalname)
+                            displaySignalList.append(modsignalname)
+                            signalMin.append(signalminimum)
+                            signalMax.append(signalmaximum)
+                            if signalunit != None:
+                                signalUnit.append(signalunit)
+                            else:
+                                signalUnit.append('')
+                            if signalcomment != None:
+                                try:
+                                    dps = int(re.findall("DPS = (\d{2}|\d{1})",signalcomment)[0])
+                                except:
+                                    dps = dpsbase
+                            else:
+                                dps = dpsbase
+                            dps_list.append(dps)
+
+        writecsv.writerow(displaySignalList)
+        writecsv.writerow(signalUnit)
+
+        for iterable in range(len(signalList)) :
+            values_list.append([])
+            aggregated_values_list.append('')
+            signalactive_list.append(False)
+
+        writecsv2 = csv.writer(logfile, quoting=csv.QUOTE_ALL)
+        linePattern = re.compile(r"\((\d+.\d+)\)\s+[^\s]+\s+([0-9A-F#]{3}|[0-9A-F#]{8})#([0-9A-F]+)")
+        linePattern2 = re.compile(r"\((\d+.\d+)\)\s+([^\s]+)\s+([0-9A-F#]{3}|[0-9A-F#]{8})#([0-9A-F]+)")
+        for row in tqdm(inputfile,desc= "Lines", total = numlines,unit = " Lines"):
+            try:
+                tokens = linePattern.search(row).groups()
+                tokens2 = linePattern2.search(row).groups()[1]
+
+                try:
+                    interfaces.index(tokens2)
+                except:
+                    interfaces.append(tokens2)
+
+                timestamp = float(tokens[0])
+                arbitration_id = int(tokens[1],16)
+                data = bytearray.fromhex(tokens[2])
+                if validate_decode() == True:
+                    signals_bool = 1
+                    if starttime == 0:
+                        starttime = timestamp
+                        lastwritetime = timestamp
+                        timestamp = 0
+                    else:
+                        timestamp = (timestamp - starttime)
+                    decoded_msg = db.decode_message(arbitration_id, data, decode_choices=False) 
+                    for (key, value) in decoded_msg.items():
+                        if key in signalList:
+                            indexval = signalList.index(key)
+                            if signalMin[indexval] == None or value >= signalMin[indexval] and signalMax[indexval] == None or value <= signalMax[indexval]:
+                                if dps_list[indexval] != None:
+                                    try:
+                                        value = round(float(value),dps_list[indexval])
+                                        try:
+                                            if int(value) == float(value):
+                                                value = int(value)
+                                        except:
+                                            pass
+                                    except:
+                                        pass
+                                values_list[indexval].append(value)
+                if (timestamp - lastwritetime >= (1/frequency)) and (signals_bool == 1) :
+                    lastwritetime = timestamp
+                    for i, items in enumerate(values_list):
+                        if len(values_list[i]) > 0:
+                            try:
+                                value = sum(values_list[i])/len(values_list[i])
+                            except:
+                                value = values_list[i][-1]
+                            if dps_list[i] != 'None':
+                                try:
+                                    value = round(float(value),dps_list[i])
+                                    try:
+                                        if int(value) == float(value):
+                                            value = int(value)
+                                    except:
+                                        pass
+                                except:
+                                    pass
+                            aggregated_values_list[i] = value
+                    aggregated_values_list[0] = str("%0.3f" %(lastwritetime-starttime))
+                    aggregated_values_with_comma_list = localize_floats(aggregated_values_list)
+                    # writecsv.writerow(aggregated_values_list)
+                    writecsv.writerow(aggregated_values_with_comma_list)
+                    outputlinecount += 1
+                    signals_bool = 0
+            
+                    for i,items in enumerate(values_list):
+                        if aggregated_values_list[i] != "" and signalactive_list[i] == False:
+                            signalactive_list[i] = True
+                        values_list[i] = []
+                        aggregated_values_list[i] = ''
+            except:
+                print("invalidated line observed: '%s'"% (row[:-1]))
+    logfile.close()
+"""
+inputfile.close()
