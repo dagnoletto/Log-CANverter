@@ -29,7 +29,8 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
     for row in tqdm(inputfile,desc= "Lines", total = numlines,unit = " Lines"):
         try:
             caninterface = linePattern2.search(row).groups()[1]
-
+            
+            #TODO: improve basename definition by using the slash / to separate fields and couple with folder names with spaces and special characters
             basename = os.path.splitext(os.path.basename(logfilename))[0]
 
             splitfile = str.split(logfilename, basename)
