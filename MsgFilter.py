@@ -23,27 +23,22 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
 inputfile.close()
 
 with open (logfilename, "r",encoding="utf8") as inputfile:
-    print("Filtering messages... \n")
 
-    Source_Address = "[19]{2}" # Filtra pelo endereço (source address) em hex
+    Source_Address = "0x19" # Node address from which messages will be retrieved
+
     PGN = "[FF20]{4}" # Filtra pelo PGN (em hex). Este filtro não considera o DP e o EDP! Ou seja, o EDP e o DP podem chegar com qualquer valor, este filtro é meia boca
     #PGN = "[0-9A-F]{4}" # Quando quiser todos os PGNs, usar este"
 
-    Pattern = "\\((\d+.\d+)\)\s+([^\s]+)\s+([0-9A-F]{2}" + PGN + Source_Address + ")#([0-9A-F]+)"
-
-    linePattern2 = re.compile(Pattern) # Filtra pelo source address (0x19)
+    print("Picking up messages from %s source address... \n"%Source_Address)
     
-    #linePattern2 = re.compile(r"\((\d+.\d+)\)\s+([^\s]+)\s+([0-9A-F]{6}[19]{2})#([0-9A-F]+)") # Filtra pelo source address (0x19)
+    Source_Address = Source_Address.removeprefix("0x")
+    Source_Address = '[' + Source_Address[0] + ']' + '[' + Source_Address[1] + ']'
 
-    #linePattern2 = re.compile(r"\((\d+.\d+)\)\s+([^\s]+)\s+([0-9A-F]{2}[FF20]{4}[19]{2})#([0-9A-F]+)") # Filtra pelo source address (0x19) e pelo PGN (0xFF20)
+    Pattern = r"\((\d+.\d+)\)\s+([^\s]+)\s+([0-9A-F]{2}" + PGN + Source_Address + ")#([0-9A-F]+)"
 
-    #Source_Address = Source_Address.removeprefix("[")
-    Source_Address = Source_Address.removesuffix("{2}")
-    #Source_Address = '_' + Source_Address + '_'
+    linePattern2 = re.compile(Pattern)
 
-    #PGN = PGN.removeprefix("[")
     PGN = PGN.removesuffix("{4}")
-    #PGN = '_' + PGN + '_'
 
     for row in tqdm(inputfile,desc= "Lines", total = numlines,unit = " Lines"):
         try:
