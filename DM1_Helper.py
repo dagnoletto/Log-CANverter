@@ -130,15 +130,21 @@ inputfile.close()
 
 with open (logfilename, "r",encoding="utf8") as inputfile:
 
-    inputAddr = "0x19"
+    inputAddr = "0x19" # Node address from which messages will be retrieved
 
     print("Picking up DM1 messages from %s source address... \n"%inputAddr)
 
-    Source_Address = int( inputAddr.removeprefix("0x"), 16 ) # Filtra pelo endereço (source address) em hex
+    Source_Address = int( inputAddr.removeprefix("0x"), 16 ) 
 
-    Pattern = "\\((\d+.\d+)\)\s+([^\s]+)\s+([0-9A-F#]{3}|[0-9A-F#]{8})#([0-9A-F]+)"
+    inputAddr = inputAddr.removeprefix("0x")
+    inputAddr = '[' + inputAddr[0] + ']' + '[' + inputAddr[1] + ']'
 
-    linePattern2 = re.compile(Pattern) # Filtra pelo source address (0x19)
+    Pattern = r"\((\d+.\d+)\)\s+([^\s]+)\s+([0-9A-F#]{3}|[0-9A-F#]{8})#([0-9A-F]+)"
+    Pattern = r"\((\d+.\d+)\)\s+([^\s]+)\s+([0-9A-F#]{3}|[0-9A-F#]{6}" + inputAddr + ")#([0-9A-F]+)"
+
+    #Pattern = r"\((\d+.\d+)\)\s+([^\s]+)\s+([0-9A-F]{2}" + PGN + Source_Address + ")#([0-9A-F]+)"
+
+    linePattern2 = re.compile(Pattern) 
 
     for row in tqdm(inputfile,desc= "Lines", total = numlines,unit = " Lines"):
         try:
