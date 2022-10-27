@@ -102,7 +102,7 @@ def generate_file_name():
     if basename.find('.') != -1:
         basename = textwrap.shorten( basename, width=basename.find('.'), placeholder='' )  
                 
-    outputfile[0] = outputfile[0] + basename + "_[DM1]" + "[" + str(hex(Source_Address)).removeprefix("0x") + "]" + ".log"
+    outputfile[0] = outputfile[0] + basename + "_[DM1]" + inputAddr + ".log"
     return outputfile[0]
 
 def save_row(row):
@@ -141,8 +141,6 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
 
     Pattern = r"\((\d+.\d+)\)\s+([^\s]+)\s+([0-9A-F#]{3}|[0-9A-F#]{8})#([0-9A-F]+)"
     Pattern = r"\((\d+.\d+)\)\s+([^\s]+)\s+([0-9A-F#]{3}|[0-9A-F#]{6}" + inputAddr + ")#([0-9A-F]+)"
-
-    #Pattern = r"\((\d+.\d+)\)\s+([^\s]+)\s+([0-9A-F]{2}" + PGN + Source_Address + ")#([0-9A-F]+)"
 
     linePattern2 = re.compile(Pattern) 
 
