@@ -173,7 +173,7 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
                     if len(interface) == 0:       
                         interface.append(caninterface)                  
                         file = generate_file_name()
-                        if os.path.exists(file): # Primeira vez chegando aqui, verifica se arquivo existe então remove-o
+                        if os.path.exists(file): # Primeira vez chegando aqui, verifica se arquivo existe entÃ£o remove-o
                             os.remove(file)
 
                 if caninterface == interface[0]:
@@ -227,7 +227,7 @@ with open (logfilename, "r",encoding="utf8") as inputfile:
                         #MsgCounter = MsgCounter + 1
                         #print("\rLine '%s': '%s'"% (MsgCounter,row[:-1]))
         except:
-            linePattern2 = re.compile(Pattern) # somente para ter código aqui e não dar erro
+            linePattern2 = re.compile(Pattern) # somente para ter cÃ³digo aqui e nÃ£o dar erro
 inputfile.close()
 
 if len(DTCs_Found) == 0:
@@ -238,7 +238,7 @@ else:
         print("\rSPN: %d FMI: %d CM: %d OC: %d" % (DTCs_Found[i].SPN, DTCs_Found[i].FMI, DTCs_Found[i].CM, DTCs_Found[i].OC) )
 
 
-# AQUI TRATA DA GERAÇÃO DO ARQUIVO EXCELL!
+# AQUI TRATA DA GERAÃ‡ÃƒO DO ARQUIVO EXCELL!
 
 
 displaySignalList = []
@@ -249,9 +249,9 @@ secondfile = firstfile.removesuffix(".log")
 tempfile = secondfile + ".temp"      
 secondfile += ".csv"
 
-if os.path.exists(tempfile): # Primeira vez chegando aqui, verifica se arquivo existe então remove-o
+if os.path.exists(tempfile): # Primeira vez chegando aqui, verifica se arquivo existe entÃ£o remove-o
     os.remove(tempfile)    
-if os.path.exists(secondfile): # Primeira vez chegando aqui, verifica se arquivo existe então remove-o
+if os.path.exists(secondfile): # Primeira vez chegando aqui, verifica se arquivo existe entÃ£o remove-o
     os.remove(secondfile)  
 
 with open (firstfile, "r",encoding="utf8") as inputfile:
